@@ -1,20 +1,20 @@
-const getRandomInt = (a, b) => {
-  const lower = Math.ceil(Math.min(Math.abs(a), Math.abs(b)));
-  const upper = Math.floor(Math.max(Math.abs(a), Math.abs(b)));
-  const result = Math.random() * (upper - lower + 1) + lower;
-  return Math.floor(result);
+const getRandomInt = (a,b) => {
+  const lower = Math.ceil(Math.min(a,b));
+  const upper = Math.floor(Math.max(a,b));
+  const result = Math.floor(Math.random() * (upper - lower + 1)) + lower;
+  return result;
 };
 
-const getRandomUniqueNumberGenerate = (a, b, usedArray) => {
-  const generator = () => {
-    const newNumber = getRandomInt(a, b);
-    if (usedArray.includes(newNumber)){
-      return generator ();
-    }
-    usedArray.push(newNumber);
-    return newNumber;
+const getRandomArrElement = (items) =>
+  items[getRandomInt(0, items.length - 1)];
+
+const createID = () => {
+  let lastID = 0;
+
+  return () => {
+    lastID += 1;
+    return lastID;
   };
-
-  return generator();
 };
-export {getRandomInt, getRandomUniqueNumberGenerate};
+
+export {getRandomInt, getRandomArrElement, createID};
