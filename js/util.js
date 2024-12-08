@@ -3,11 +3,10 @@ const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) +
 const getRandomArrayElement = (array) => array[Math.floor(Math.random() * array.length)];
 
 const getUniqueValue = (array, min, max) => {
-  const id = getRandomInt(min, max);
-
-  if (array.some((item) => item === id)) {
-    getUniqueValue(array, min, max);
-  }
+  let id;
+  do {
+    id = getRandomInt(min, max);
+  } while (array.includes(id));
   return id;
 };
 
@@ -18,4 +17,4 @@ const getWordEnding = (number, words) => {
   return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
 };
 
-export {getRandomInt,getRandomArrayElement,getUniqueValue,isEscEvent,getWordEnding};
+export { getRandomInt, getRandomArrayElement, getUniqueValue, isEscEvent, getWordEnding };

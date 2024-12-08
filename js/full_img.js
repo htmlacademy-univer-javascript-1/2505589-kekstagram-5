@@ -26,7 +26,6 @@ const checkTheHiddenLoadComments = (flag) => {
   }
 };
 
-
 const createComment = (comment) => {
   const commentBlock = commentTemplate.cloneNode(true);
   const commentImg = commentBlock.querySelector('.social__picture');
