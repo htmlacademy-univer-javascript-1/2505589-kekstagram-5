@@ -1,65 +1,94 @@
-const MAX_HASHTAGS = 5;
-const MAX_DESCRIPTION_LENGTH = 140;
-const HASHTAG = /^#[A-Za-z0-9а-яё]{1,19}$/i;
-const FORM_ERRORS = {
-  COUNT_EXCEEDED: `Максимальное количество хэштегов — ${MAX_HASHTAGS}`,
-  UNIQUE_HASHTAGS: 'Хэштеги повторяются',
-  INCORRECT_HASHTAG: 'Невалидный хэштег',
-  LONG_DESCRIPTION: `Описание должно быть не длинее ${MAX_DESCRIPTION_LENGTH} символов`
+import { isEscapeKey } from './util.js';
+
+const COMMENT_MAXLENGTH = 140;
+const HASHTAGS_MAXCOUNT = 5;
+const VALID_HASHTAG_STRING = /^#[a-zа-яё0-9]{1,19}$/i;
+const errorMessages = {
+  INVALID_HASHTAG_STRING: 'Хэш-тег должен начинаться с #, состоять из букв и чисел без пробелов, максимальная длина одного хэш-тега 20 символов, включая #',
+  COMMENT_MAXLENGTH_ERROR: `Длина комментария не может составлять больше ${COMMENT_MAXLENGTH} символов`,
+  COUNT_HASHTAGS_ERROR: `Нельзя указать больше ${HASHTAGS_MAXCOUNT} хэш-тегов`,
+  UNIQUENESS_ERROR: 'Хэш-теги не должны повторяться',
 };
-const form = document.querySelector('.img-upload__form');
-const imageInput = form.querySelector('.img-upload__input');
-const modalOverlay = form.querySelector('.img-upload__overlay');
-const mainBody = document.querySelector('body');
-const hashtagsField = form.querySelector('.text__hashtags');
-const descriptionField = form.querySelector('.text__description');
-const closeButton = form.querySelector('.img-upload__cancel');
-const pristineValidator = new Pristine(form, {
+const bodyElement = document.querySelector('body');
+const uploadFormElement = document.querySelector('.img-upload__form');
+const uploadInputElement = uploadFormElement.querySelector('.img-upload__input');
+const uploadOverlayElement = uploadFormElement.querySelector('.img-upload__overlay');
+const uploadCancelButtonElement = uploadFormElement.querySelector('.img-upload__cancel');
+const uploadHashtagElement = uploadFormElement.querySelector('.text__hashtags');
+const uploadCommentElement = uploadFormElement.querySelector('.text__description');
+
+const pristine = new Pristine(uploadFormElement, {
   classTo: 'img-upload__field-wrapper',
-  errorTextParent: 'img-upload__field-wrapper',
+  errorTextParent: 'img-upload__field-wrapper'
 });
-const validateDescriptionLength = (value) => value.length <= 140;
-const splitHashtags = (value) => value.trim().split(/\s+/).filter((tag) => Boolean(tag.length));
-const isInputFocused = () => document.activeElement === hashtagsField || document.activeElement === descriptionField;
-const validateHashtagCount = (value) => splitHashtags(value).length <= MAX_HASHTAGS;
-const validateHashtags = (value) => splitHashtags(value).every((tag) => HASHTAG.test(tag));
-const validateUniqueHashtags = (value) => {
-  const hashtags = splitHashtags(value).map((tag) => tag.toLowerCase());
-  return hashtags.length === new Set(hashtags).size;
+
+const checkComment = (value) => value.length <= COMMENT_MAXLENGTH;
+
+pristine.addValidator(uploadCommentElement, checkComment, errorMessages.COMMENT_MAXLENGTH_ERROR);
+
+const getHashtags = (value) => {
+  const hashtags = value.trim().split(/\s+/);
+  return hashtags;
 };
-const handleEscPress = (evt) => {
-  if (evt.key === 'Escape' && !isInputFocused()) {
+
+const checkSymbols = (value) => getHashtags(value).every((hashtag) => VALID_HASHTAG_STRING.test(hashtag));
+
+const checkCount = (value) => getHashtags(value).length <= HASHTAGS_MAXCOUNT;
+
+const checkUniqueness = (value) => {
+  const hashtags = getHashtags(value);
+  const lowerHashtags = hashtags.map((hashtag) => hashtag.toLowerCase());
+  return lowerHashtags.length === new Set(lowerHashtags).size;
+};
+
+pristine.addValidator(uploadHashtagElement, checkSymbols, errorMessages.INVALID_HASHTAG_STRING);
+pristine.addValidator(uploadHashtagElement, checkCount, errorMessages.COUNT_HASHTAGS_ERROR);
+pristine.addValidator(uploadHashtagElement, checkUniqueness, errorMessages.UNIQUENESS_ERROR);
+
+const isInputOnFocus = () =>
+  document.activeElement === uploadHashtagElement || document.activeElement === uploadCommentElement;
+
+const onDocumentKeydown = (evt) => {
+  if (isEscapeKey(evt) && !isInputOnFocus()) {
     evt.preventDefault();
-    // eslint-disable-next-line no-use-before-define
     closeForm();
   }
 };
-const closeForm = () => {
-  form.reset();
-  pristineValidator.reset();
-  imageInput.value = '';
-  modalOverlay.classList.add('hidden');
-  mainBody.classList.remove('modal-open');
-  document.removeEventListener('keydown', handleEscPress);
+
+const openForm = () => {
+  uploadInputElement.addEventListener('change', () => {
+    uploadOverlayElement.classList.remove('hidden');
+    document.addEventListener('keydown', onDocumentKeydown);
+    bodyElement.classList.add('modal-open');
+    uploadCancelButtonElement.addEventListener('click', closeForm);
+  });
 };
-const showForm = () => {
-  modalOverlay.classList.remove('hidden');
-  mainBody.classList.add('modal-open');
-  document.addEventListener('keydown', handleEscPress);
-};
-const onFileSelected = (evt) => {
-  if (evt.target.files.length) {
-    showForm();
-  }
-};
-document.addEventListener('keydown', (evt) => {
-  if (evt.key === 'Escape' && isInputFocused()) {
-    evt.stopPropagation();
+
+function closeForm() {
+  uploadFormElement.reset();
+  pristine.reset();
+  uploadOverlayElement.classList.add('hidden');
+  bodyElement.classList.remove('modal-open');
+  document.removeEventListener('keydown', onDocumentKeydown);
+}
+
+uploadFormElement.addEventListener('submit', (evt) => {
+  evt.preventDefault();
+
+  const hasValidHashtag = uploadHashtagElement.value.trim() !== '';
+  const hasValidComment = uploadCommentElement.value.trim() !== '';
+  const isValidHashtag = !hasValidHashtag || pristine.validate(uploadHashtagElement);
+  const isValidComment = !hasValidComment || pristine.validate(uploadCommentElement);
+
+  if (isValidHashtag && isValidComment) {
+    uploadFormElement.submit();
   }
 });
-pristineValidator.addValidator(descriptionField, validateDescriptionLength, FORM_ERRORS.LONG_DESCRIPTION);
-pristineValidator.addValidator(hashtagsField, validateUniqueHashtags, FORM_ERRORS.UNIQUE_HASHTAGS);
-pristineValidator.addValidator(hashtagsField, validateHashtags, FORM_ERRORS.INCORRECT_HASHTAG);
-pristineValidator.addValidator(hashtagsField, validateHashtagCount, FORM_ERRORS.COUNT_EXCEEDED);
-imageInput.addEventListener('change', onFileSelected);
-closeButton.addEventListener('click', closeForm);
+
+uploadHashtagElement.addEventListener('keydown', () => {
+  if (uploadHashtagElement.value !== '' || uploadCommentElement.value !== '') {
+    pristine.reset();
+  }
+});
+
+export { openForm };
