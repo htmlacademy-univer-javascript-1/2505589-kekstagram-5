@@ -1,20 +1,21 @@
-const getRandomInt = (a,b) => {
-  const lower = Math.ceil(Math.min(a,b));
-  const upper = Math.floor(Math.max(a,b));
-  const result = Math.floor(Math.random() * (upper - lower + 1)) + lower;
-  return result;
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+const getRandomArrayElement = (array) => array[Math.floor(Math.random() * array.length)];
+
+const getUniqueValue = (array, min, max) => {
+  const id = getRandomInt(min, max);
+
+  if (array.some((item) => item === id)) {
+    getUniqueValue(array, min, max);
+  }
+  return id;
 };
 
-const getRandomArrElement = (items) =>
-  items[getRandomInt(0, items.length - 1)];
+const isEscEvent = (evt) => evt.key === 'Escape' || evt.key === 'Esc';
 
-const createID = () => {
-  let lastID = 0;
-
-  return () => {
-    lastID += 1;
-    return lastID;
-  };
+const getWordEnding = (number, words) => {
+  const cases = [2, 0, 1, 1, 1, 2];
+  return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
 };
 
-export {getRandomInt, getRandomArrElement, createID};
+export {getRandomInt,getRandomArrayElement,getUniqueValue,isEscEvent,getWordEnding};

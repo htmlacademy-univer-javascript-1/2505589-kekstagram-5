@@ -1,4 +1,7 @@
-import {getPictures} from './data.js';
-import { createThumbnails } from './thumbnailCreator.js';
+/* eslint-disable no-console */
+// import {posts} from './data.js';
 
-createThumbnails(getPictures());
+// console.log(posts);
+
+import {renderPosts} from './prewiew.js';
+renderPosts();
