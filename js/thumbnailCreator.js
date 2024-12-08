@@ -18,5 +18,4 @@ const createThumbnails = () => {
 
   picturesContainer.appendChild(fragment);
 };
-
 export { createThumbnails};
