@@ -1,21 +1,39 @@
-const getRandomInteger = (a, b) => {
-  const lower = Math.ceil(Math.min(a, b));
-  const upper = Math.floor(Math.max(a, b));
-  const result = Math.random() * (upper - lower + 1) + lower;
-  return Math.floor(result);
+/* eslint-disable curly */
+const getRandomInt = (min, max) => {
+  const lower = Math.ceil(Math.min(min, max));
+  const upper = Math.floor(Math.max(min, max));
+  return Math.floor(Math.random() * (upper - lower + 1) + lower);
 };
 
-const getRandomArrayElement = (elements) =>
-  elements[getRandomInteger(0, elements.length - 1)];
+const randomIdInRange = (bottom, top) => {
+  const usedIDs = [];
 
-const createIdGenerator = () => {
-  let lastIdGenerated = 0;
-  return () => {
-    lastIdGenerated += 1;
-    return lastIdGenerated;
+  return function() {
+    if (usedIDs.length >= (top - bottom + 1)) {
+      return null;
+    }
+
+    let currentInt;
+    do {
+      currentInt = getRandomInt(bottom, top);
+    } while (usedIDs.includes(currentInt));
+
+    usedIDs.push(currentInt);
+    return currentInt;
   };
 };
 
-const isEscapeKey = (evt) => evt.key === 'Escape';
+const isEscape = (evt) => evt.key === 'Escape';
 
-export { getRandomInteger, getRandomArrayElement, createIdGenerator, isEscapeKey };
+const randomValueFromArray = (currentArray) => {
+  if (currentArray.length === 0)
+    return null;
+  return currentArray[getRandomInt(0, currentArray.length - 1)];
+};
+
+export {
+  getRandomInt,
+  randomIdInRange,
+  randomValueFromArray,
+  isEscape
+};
