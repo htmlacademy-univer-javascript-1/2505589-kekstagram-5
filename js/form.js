@@ -1,80 +1,106 @@
-import {isEscape} from './utils.js';
-const maxHashtags = 5;
-const hashtag = /^#[a-zа-яё0-9]{1,19}$/i;
+import {isEscapeKey} from './util.js';
+const MAX_HASHTAGS_COUNT = 5;
+const MAX_SYMBOLS = 20;
 
-const ErrorMessages = {
-  countExceeded: `Максимум ${maxHashtags} хэштегов`,
-  notUnique: 'Хэштеги должны быть уникальными',
-  invalidFormat: 'Некорректный хэштег'
-};
+const form = document.querySelector('.img-upload__form');
+const formOverlay = form.querySelector('.img-upload__overlay');
+const body = document.querySelector('body');
+const inputHashtag = form.querySelector('.text__hashtags');
 
-const documentBody = document.querySelector('body');
-const imageUploadForm = document.querySelector('.img-upload__form');
-const uploadModal = imageUploadForm.querySelector('.img-upload__overlay');
-const hashtagsInputField = imageUploadForm.querySelector('.text__hashtags');
-
-const pristineValidator = new Pristine(imageUploadForm, {
+const pristine = new Pristine (form, {
   classTo: 'img-upload__field-wrapper',
   errorTextParent: 'img-upload__field-wrapper',
 });
 
-const displayForm = () => {
-  uploadModal.classList.remove('hidden');
-  documentBody.classList.add('modal-open');
+const showModal = () => {
+  formOverlay.classList.remove('hidden');
+  body.classList.add('modal-open');
   document.addEventListener('keydown', onDocumentKeydown);
 };
 
-const hideForm = () => {
-  imageUploadForm.reset();
-  pristineValidator.reset();
-  uploadModal.classList.add('hidden');
-  documentBody.classList.remove('modal-open');
+const hideModal = () => {
+  form.reset();
+  pristine.reset();
+  formOverlay.classList.add('hidden');
+  body.classList.remove('modal-open');
   document.removeEventListener('keydown', onDocumentKeydown);
 };
 
-const parseTags = (inputString) => inputString.trim().split(' ').filter((currentTag) => Boolean(currentTag.length));
-const isFocusedOnInput = () => document.activeElement === hashtagsInputField || document.activeElement === imageUploadForm.querySelector('.text__description');
-const validateTagCount = (inputValue) => parseTags(inputValue).length <= maxHashtags;
-const validateHashtagsFormat = (inputValue) => parseTags(inputValue).every((tag) => hashtag.test(tag));
+const isTextFieldFocused = () => document.activeElement === inputHashtag
+  || document.activeElement === form.querySelector('.text__description');
 
-const validateUniqueTags = (inputValue) => {
-  const lowercaseTags = parseTags(inputValue).map((currentTag) => currentTag.toLowerCase());
-  return lowercaseTags.length === new Set(lowercaseTags).size;
+let errorMessage = '';
+
+const error = () => errorMessage;
+
+const hashtagsHandler = (value) => {
+  errorMessage = '';
+
+  const inputText = value.toLowerCase().trim();
+
+  if (!inputText) {
+    return true;
+  }
+
+  const inputArray = inputText.split(/\s+/);
+
+  const rules = [
+    {
+      check: inputArray.length > MAX_HASHTAGS_COUNT,
+      error: `Нельзя указать более ${MAX_HASHTAGS_COUNT} хэш-тегов`,
+    },
+    {
+      check: inputArray.some((item) => item.length > MAX_SYMBOLS),
+      error: `Максимальная длина одного хэш-тега ${MAX_SYMBOLS} символов, включая решётку`,
+    },
+    {
+      check: inputArray.some((item) => item.indexOf('#', 1) >= 1),
+      error: 'Хэш-теги разделяются пробелами',
+    },
+    {
+      check: inputArray.some((item) => item[0] !== '#'),
+      error: 'Хэш-тег должен начинаться с символа #',
+    },
+    {
+      check: inputArray.some((item, num, arr) => arr.includes(item, num + 1)),
+      error: 'Хэш-теги не должны повторяться',
+    },
+    {
+      check: inputArray.some((item) => !/^#[a-zа-яё0-9]{1,19}/i.test(item)),
+      error: 'Хэш-тег содержит недопустимые символы',
+    },
+  ];
+
+  return rules.every((rule) => {
+    const isInvalid = rule.check;
+    if (isInvalid) {
+      errorMessage = rule.error;
+    }
+    return !isInvalid;
+  });
 };
 
+pristine.addValidator(inputHashtag, hashtagsHandler, error, 2, false);
+
+const onHashtagInput = () => {
+  if (pristine.validate()) {
+    form.querySelector('img-upload__submit').classList.remove('disabled');
+  } else {
+    form.querySelector('img-upload__submit').classList.add('disabled');
+  }
+};
+
+inputHashtag.addEventListener('input', onHashtagInput);
+
 function onDocumentKeydown(evt) {
-  if (isEscape && !isFocusedOnInput()) {
+  if (isEscapeKey && !isTextFieldFocused()) {
     evt.preventDefault();
-    hideForm();
+    hideModal();
   }
 }
 
-const handleCancelClick = () => hideForm();
-const handleInputChange = () => displayForm();
+const onCancelButtonClick = () => hideModal;
+const onFileInputChange = () => showModal;
 
-pristineValidator.addValidator(
-  hashtagsInputField,
-  validateUniqueTags,
-  ErrorMessages.notUnique,
-  1,
-  true
-);
-
-pristineValidator.addValidator(
-  hashtagsInputField,
-  validateHashtagsFormat,
-  ErrorMessages.invalidFormat,
-  2,
-  true
-);
-
-pristineValidator.addValidator(
-  hashtagsInputField,
-  validateTagCount,
-  ErrorMessages.countExceeded,
-  3,
-  true
-);
-
-imageUploadForm.querySelector('.img-upload__input').addEventListener('change', handleInputChange);
-imageUploadForm.querySelector('.img-upload__cancel').addEventListener('click', handleCancelClick);
+form.addEventListener('change', onFileInputChange());
+form.querySelector('.img-upload__cancel').addEventListener('click', onCancelButtonClick());

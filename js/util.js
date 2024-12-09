@@ -1,39 +1,33 @@
-/* eslint-disable curly */
-const getRandomInt = (min, max) => {
-  const lower = Math.ceil(Math.min(min, max));
-  const upper = Math.floor(Math.max(min, max));
-  return Math.floor(Math.random() * (upper - lower + 1) + lower);
+const getRandomInt = (a, b) => {
+  const lower = Math.ceil(Math.min(a, b));
+  const upper = Math.floor(Math.max(a, b));
+  const result = Math.random() * (upper - lower + 1) + lower;
+  return Math.floor(result);
 };
 
-const randomIdInRange = (bottom, top) => {
-  const usedIDs = [];
+const createRandomNumbers = (min, max) => {
+  const previousValues = [];
 
-  return function() {
-    if (usedIDs.length >= (top - bottom + 1)) {
+  return function () {
+    let currentValue = getRandomInt(min, max);
+    if (previousValues.length >= (max - min + 1)) {
       return null;
     }
-
-    let currentInt;
-    do {
-      currentInt = getRandomInt(bottom, top);
-    } while (usedIDs.includes(currentInt));
-
-    usedIDs.push(currentInt);
-    return currentInt;
+    while (previousValues.includes(currentValue)) {
+      currentValue = getRandomInt(min, max);
+    }
+    previousValues.push(currentValue);
+    return currentValue;
   };
 };
 
-const isEscape = (evt) => evt.key === 'Escape';
+const getRandomArrElement = (elements) => elements[createRandomNumbers(0, elements.length - 1)()];
 
-const randomValueFromArray = (currentArray) => {
-  if (currentArray.length === 0)
-    return null;
-  return currentArray[getRandomInt(0, currentArray.length - 1)];
+const createID = (evt) => evt.key === 'Escape';
+
+const getWordEnding = (number, words) => {
+  const cases = [2, 0, 1, 1, 1, 2];
+  return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
 };
 
-export {
-  getRandomInt,
-  randomIdInRange,
-  randomValueFromArray,
-  isEscape
-};
+export {getRandomInt, createRandomNumbers, getRandomArrElement, createID, getWordEnding};
