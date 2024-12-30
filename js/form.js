@@ -1,261 +1,199 @@
-import { sendData } from './api.js';
-const uploadInput = document.querySelector('.img-upload__input');
-const uploadOverlay = document.querySelector('.img-upload__overlay');
-const form = document.querySelector('.img-upload__form');
-const closeButton = uploadOverlay.querySelector('.img-upload__cancel');
-const hashtagInput = form.querySelector('.text__hashtags');
-const commentInput = form.querySelector('.text__description');
+import { uploadForm, fileInput, hashtagInput, descriptionInput } from './form-api.js';
 
-const HASHTAG_PATTERN = /^#[A-Za-zА-Яа-я0-9]{1,20}$/;
-let scaleValue = 100;
+const uploadOverlay = document.querySelector('.img-upload__overlay'); // Блок формы
+const closeButton = uploadOverlay.querySelector('.img-upload__cancel'); // Крестик
 
-const isEscapeKey = (evt) => evt.key === 'Escape';
+let currentScale = 100;
+const scaleSmaller = uploadOverlay.querySelector('.scale__control--smaller');
+const scaleBigger = uploadOverlay.querySelector('.scale__control--bigger');
+const scaleValue = uploadOverlay.querySelector('.scale__control--value');
 
-function handleEscapeKey(event) {
-  if (isEscapeKey(event) && ![commentInput, hashtagInput].some((el) => el === document.activeElement)) {
-    closeForm();
-  }
-}
+export let currentEffect = 'none';
+const effectRadios = document.querySelectorAll('input[name="effect"]');
+const effectLevelSlider = document.querySelector('.effect-level__slider');
+const effectLevelValue = document.querySelector('.effect-level__value');
 
-function closeForm() {
-  document.querySelector('body').classList.remove('modal-open');
-  document.removeEventListener('keydown', handleEscapeKey);
-  closeButton.removeEventListener('click', closeForm);
-  uploadOverlay.classList.add('hidden');
-  form.reset();
-  applyFilter('none', 0);
-  scaleValue = 100;
-}
+// Pristine
+export const pristine = new Pristine(uploadForm, {
+  classTo: 'img-upload__form',
+  errorTextParent: 'img-upload__form',
+  errorTextClass: 'form__error',
+}, true);
 
-function openForm() {
-  document.querySelector('body').classList.add('modal-open');
-  document.addEventListener('keydown', handleEscapeKey);
-  closeButton.addEventListener('click', closeForm);
-  uploadOverlay.classList.remove('hidden');
-  updateScale();
-}
-
-const pristine = new Pristine(form);
-
+// Проверка хэш-тегов
 function validateHashtags(value) {
   if (!value) {
-    return {valid: true, message: ''};
+    return true; // Поле не обязательное
   }
-
-  const hashtags = value.trim().split(/\s+/);
+  const hashtags = value.trim().toLowerCase().split(/\s+/);
+  const hashtagPattern = /^#[a-zа-яё0-9]{1,19}$/;
 
   if (hashtags.length > 5) {
-    return {valid: false, message: 'превышено количество хэш-тегов'};
+    return false; // Максимум 5 хэштегов
   }
-
-  for (const hashtag of hashtags) {
-    if (!HASHTAG_PATTERN.test(hashtag)) {
-      return {valid: false, message: 'введён невалидный хэш-тег'};
-    }
-  }
-
-  const uniqueHashtags = new Set(hashtags.map((hashtag) => hashtag.toLowerCase()));
-  if (uniqueHashtags.size !== hashtags.length) {
-    return {valid: false, message: 'хэш-теги повторяются'};
-  }
-
-  return {valid: true, message: ''};
+  return hashtags.every((tag) => hashtagPattern.test(tag)) &&
+    new Set(hashtags).size === hashtags.length; // Проверка на уникальность
 }
 
-pristine.addValidator(hashtagInput, (value) => validateHashtags(value).valid, (value) => validateHashtags(value).message);
-pristine.addValidator(commentInput, (value) => value.length < 140, 'Длина комментария не может составлять больше 140 символов');
+pristine.addValidator(
+  hashtagInput,
+  validateHashtags,
+  'Хэш-теги должны начинаться с #, быть не длиннее 20 символов и без повторений. Максимум 5 хэш-тегов.'
+);
 
-uploadInput.addEventListener('change', openForm);
-
-const scaleControlSmallerButton = form.querySelector('.scale__control--smaller');
-const scaleControlBiggerButton = form.querySelector('.scale__control--bigger');
-const valueInput = form.querySelector('.scale__control--value');
-const imagePreview = document.querySelector('.img-upload__preview img');
-
-function updateScale() {
-  valueInput.value = `${scaleValue}%`;
-  imagePreview.style.transform = `scale(${scaleValue / 100})`;
+// Валидация комментария
+function validateDescription(value) {
+  return value.length <= 140;
 }
 
-scaleControlSmallerButton.addEventListener('click', () => {
-  if (scaleValue > 25) {
-    scaleValue -= 25;
-    updateScale();
+pristine.addValidator(
+  descriptionInput,
+  validateDescription,
+  'Комментарий не должен превышать 140 символов.'
+);
+
+const previewImage = uploadOverlay.querySelector('.img-upload__preview img');
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (file) {
+    const imageUrl = URL.createObjectURL(file);
+    previewImage.src = imageUrl;
+    uploadOverlay.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+
+    // Установка начального состояния
+    currentEffect = 'none';
+    updateSlider(currentEffect);
+    effectLevelValue.value = '';
+    previewImage.style.filter = '';
+    pristine.reset();
+    applyScale(currentScale);
   }
 });
 
-scaleControlBiggerButton.addEventListener('click', () => {
-  if (scaleValue < 100) {
-    scaleValue += 25;
-    updateScale();
+// --------- Функция для применения масштаба ---------
+
+export function applyScale(scale) {
+  scaleValue.value = `${scale}%`; // Исправлено: корректный синтаксис
+  const scaleFactor = scale / 100;
+  previewImage.style.transform = `scale(${scaleFactor})`; // Исправлено: корректный синтаксис
+}
+
+
+scaleSmaller.addEventListener('click', () => {
+  if (currentScale > 25) {
+    currentScale -= 25;
+    applyScale(currentScale);
   }
 });
 
-const sliderElement = document.querySelector('.effect-level__slider');
-const effectLevel = document.querySelector('.effect-level__value');
-const effectInputs = document.querySelectorAll('input[name="effect"]');
-const sliderContainer = document.querySelector('.img-upload__effect-level');
-let isUpdatingSlider = false;
-let newFilter = false;
-sliderContainer.style.display = 'none';
 
-const effectSettings = {
-  none: { min: 0, max: 100, step: 1, filter: 'none', unit: '' },
-  chrome: { min: 0, max: 1, step: 0.1, filter: 'grayscale', unit: '' },
-  sepia: { min: 0, max: 1, step: 0.1, filter: 'sepia', unit: '' },
-  marvin: { min: 0, max: 100, step: 1, filter: 'invert', unit: '%' },
-  phobos: { min: 0, max: 3, step: 0.1, filter: 'blur', unit: 'px' },
-  heat: { min: 1, max: 3, step: 0.1, filter: 'brightness', unit: '' },
-};
+scaleBigger.addEventListener('click', () => {
+  if (currentScale < 100) {
+    currentScale += 25;
+    applyScale(currentScale);
+  }
+});
 
-noUiSlider.create(sliderElement, {
-  range: { min: 0, max: 100 },
+// --------- Слайдер и эффекты ---------
+
+noUiSlider.create(effectLevelSlider, {
+  range: {
+    min: 0,
+    max: 100,
+  },
   start: 100,
   step: 1,
   connect: 'lower',
 });
 
-function applyFilter(filter, value, unit) {
-  if (filter === 'none') {
-    imagePreview.style.filter = 'none';
-    sliderContainer.style.display = 'none';
+function applyEffect(effect, value) {
+  const imageElement = document.querySelector('.img-upload__preview img');
+  imageElement.className = ''; // Сбрасываем предыдущий класс эффекта
+  previewImage.style.filter = ''; // Сбрасываем фильтр
+
+  if (effect !== 'none') {
+    imageElement.classList.add(`effects__preview--${effect}`);
+    const filterValue = value / 100;
+    switch (effect) {
+      case 'chrome':
+        previewImage.style.filter = `grayscale(${filterValue})`;
+        break;
+      case 'sepia':
+        previewImage.style.filter = `sepia(${filterValue})`;
+        break;
+      case 'marvin':
+        previewImage.style.filter = `invert(${filterValue * 100}%)`;
+        break;
+      case 'phobos':
+        previewImage.style.filter = `blur(${filterValue * 3}px)`;
+        break;
+      case 'heat':
+        previewImage.style.filter = `brightness(${1 + filterValue * 2})`;
+        break;
+    }
+  }
+}
+
+// Обновление слайдера при переключении фильтра
+function updateSlider(effect) {
+  if (effect === 'none') {
+    effectLevelSlider.classList.add('hidden');
+    effectLevelValue.value = 0; // Устанавливаем значение эффекта в 0
+    if (effectLevelSlider.noUiSlider) {
+      effectLevelSlider.noUiSlider.set(0); // Перемещаем ползунок в 0
+    }
+    previewImage.style.filter = '';
   } else {
-    imagePreview.style.filter = `${filter}(${value}${unit})`;
-    sliderContainer.style.display = 'block';
+    effectLevelSlider.classList.remove('hidden');
+    effectLevelSlider.noUiSlider.updateOptions({
+      range: { min: 0, max: 100 },
+      start: 100, // Сброс значения слайдера в 100
+    });
+    effectLevelValue.value = 100; // Устанавливаем начальное значение для эффекта
   }
 }
 
-const updateOptions = (min, max, step) => {
-  isUpdatingSlider = true;
-
-  sliderElement.noUiSlider.updateOptions({
-    range: { min: min, max: max },
-    step: step,
-  });
-
-  if (effectLevel.value >= max) {
-    effectLevel.value = max;
-    sliderElement.noUiSlider.set(effectLevel.value);
-  }
-
-  isUpdatingSlider = false;
-};
-
-const updateImage = () => {
-  if (isUpdatingSlider) {
-    return;
-  }
-  const selectedEffect = document.querySelector('input[name="effect"]:checked').value;
-  const { min, max, step, filter, unit } = effectSettings[selectedEffect];
-  effectLevel.value = newFilter ? 100 : sliderElement.noUiSlider.get();
-  newFilter = false;
-  updateOptions(min, max, step);
-  applyFilter(filter, effectLevel.value, unit);
-};
-
-sliderElement.noUiSlider.on('update', () => {
-  updateImage();
-});
-
-effectInputs.forEach((input) => {
-  input.addEventListener('change', () => {
-    newFilter = true;
-    updateImage();
+// Обработчик переключения фильтров
+effectRadios.forEach((radio) => {
+  radio.addEventListener('change', (evt) => {
+    currentEffect = evt.target.value;
+    updateSlider(currentEffect); // Сбрасываем слайдер в 0 при смене эффекта
+    applyEffect(currentEffect, effectLevelSlider.noUiSlider.get());
   });
 });
 
-const successMessage = document.querySelector('#success').content.querySelector('.success');
-const successMessageCloseButton = successMessage.querySelector('.success__button');
+// Обновление эффекта при движении слайдера
+effectLevelSlider.noUiSlider.on('update', (values) => {
+  const value = Math.round(values[0]);
+  effectLevelValue.value = value; // Записываем значение в скрытое поле
+  applyEffect(currentEffect, value); // Применяем эффект
+});
 
-function closeSuccessMessage() {
-  successMessage.remove();
-  document.removeEventListener('keydown', successMessageEcsHandle);
-  document.removeEventListener('click', successMessageOutsideClick);
+// --------- Закрытие формы ---------
+
+export function resetForm() {
+  uploadForm.reset();
+  pristine.reset();
+  uploadOverlay.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  fileInput.value = '';
+  currentScale = 100;
+  applyScale(currentScale);
+  previewImage.className = '';
+  currentEffect = 'none';
+  updateSlider(currentEffect);
+  previewImage.style.filter = '';
 }
 
-function successMessageEcsHandle(evt) {
-  if (isEscapeKey(evt)) {
-    closeSuccessMessage();
+// Закрытие формы по Esc
+document.addEventListener('keydown', (evt) => {
+  if (evt.key === 'Escape' && document.activeElement !== hashtagInput && document.activeElement !== descriptionInput) {
+    resetForm();
   }
-}
+});
 
-let ignoreFirstClick = false;
-
-function successMessageOutsideClick(evt) {
-  if (ignoreFirstClick) {
-    ignoreFirstClick = false;
-    return;
-  }
-  if (!successMessage.querySelector('.success__inner').contains(evt.target)) {
-    closeSuccessMessage();
-  }
-}
-
-function showSuccessMessage() {
-  document.body.appendChild(successMessage);
-  ignoreFirstClick = true;
-  successMessageCloseButton.addEventListener('click', closeSuccessMessage);
-  document.addEventListener('keydown', successMessageEcsHandle);
-  document.addEventListener('click', successMessageOutsideClick);
-}
-
-const errorMessageTemplate = document.querySelector('#error').content.querySelector('.error');
-const errorMessage = errorMessageTemplate.cloneNode(true);
-const errorMessageCloseButton = errorMessage.querySelector('.error__button');
-
-const closeErrorMessage = () => {
-  errorMessage.remove();
-  document.removeEventListener('keydown', errorMessageEcsHandle);
-  document.removeEventListener('click', errorMessageOutsideClick);
-};
-
-function errorMessageEcsHandle(evt) {
-  if (isEscapeKey(evt)) {
-    closeErrorMessage();
-  }
-}
-
-function errorMessageOutsideClick(evt) {
-  if (!errorMessage.querySelector('.error__inner').contains(evt.target)) {
-    closeErrorMessage();
-  }
-}
-
-const showErrorMessage = () => {
-  document.body.appendChild(errorMessage);
-  errorMessageCloseButton.addEventListener('click', closeErrorMessage);
-  document.addEventListener('keydown', errorMessageEcsHandle);
-  document.addEventListener('click', errorMessageOutsideClick);
-};
-
-const submitButton = document.querySelector('.img-upload__submit');
-
-const SubmitButtonText = {
-  IDLE: 'Сохранить',
-  SENDING: 'Сохраняю...'
-};
-
-const blockSubmitButton = () => {
-  submitButton.disabled = true;
-  submitButton.textContent = SubmitButtonText.SENDING;
-};
-
-const unblockSubmitButton = () => {
-  submitButton.disabled = false;
-  submitButton.textContent = SubmitButtonText.IDLE;
-};
-
-form.addEventListener('submit', (evt) => {
-  evt.preventDefault();
-  const isValid = pristine.validate();
-  if (isValid) {
-    blockSubmitButton();
-    sendData(new FormData(evt.target)).then(() => {
-      closeForm();
-      showSuccessMessage();
-    }).catch(() => {
-      closeForm();
-      showErrorMessage();
-    }).finally(unblockSubmitButton());
-  }
+// Закрытие формы по клику на крестик
+closeButton.addEventListener('click', () => {
+  resetForm();
 });
