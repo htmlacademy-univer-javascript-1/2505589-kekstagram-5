@@ -53,4 +53,13 @@ function showError(message) {
   document.body.appendChild(errorBlock);
 }
 
-export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, showError};
+function debounce(callback, delay) {
+  let timeout;
+  return (...rest) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => callback.apply(this, rest), delay);
+  };
+}
+
+export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, showError, debounce};
+
