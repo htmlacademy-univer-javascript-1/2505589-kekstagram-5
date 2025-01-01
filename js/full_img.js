@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable no-use-before-define */
 
-import {createID, getWordEnding} from './util.js';
+import {getRandomNumberWithNoRepeat, getWordEnding} from './util.js';
 
 const bigPicture = document.querySelector('.big-picture');
 const social = bigPicture.querySelector('.social');
@@ -48,7 +48,7 @@ const createCommentsFragment = (comments) => {
 };
 
 const onPopupEscKeydown = (evt) => {
-  if (createID(evt)){
+  if (getRandomNumberWithNoRepeat(evt)){
     evt.preventDefault();
     closeBigPicture();
   }
