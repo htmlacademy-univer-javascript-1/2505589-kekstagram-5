@@ -75,4 +75,4 @@ function getWordEnding(count, endings) {
 }
 
 
-export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, getWordEnding, showError, debounce};
+export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, getWordEnding, showError, debounce};r
