@@ -105,7 +105,6 @@ const renderPost = (post) => {
   socialComments.innerHTML = '';
   commentsCountLoaded = 0;
   renderComments(post.comments);
-
 };
 
 const postIsOpen = (post) => {
