@@ -1,8 +1,8 @@
 import { photos } from './photos.js';
-import { renderThumbnails } from './thumbnails.js';
+import { renderPhoto } from './thumbnailCreator.js';
 import { initFilters } from './filters.js';
 import './form.js';
-import './form-api.js';
+import './api.js';
 
-renderThumbnails(photos); // Отрисовка миниатюр
-initFilters(photos, renderThumbnails); // Инициализация фильтров
+renderPhoto(photos); // Отрисовка миниатюр
+initFilters(photos, renderPhoto); // Инициализация фильтров
