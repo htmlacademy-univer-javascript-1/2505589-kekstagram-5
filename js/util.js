@@ -61,5 +61,20 @@ function debounce(callback, delay) {
   };
 }
 
-export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, showError, debounce};
+function getWordEnding(count, endings) {
+  const modulo10 = count % 10;
+  const modulo100 = count % 100;
+
+  if (modulo10 === 1 && modulo100 !== 11) {
+    return endings[0];
+  } else if (modulo10 >= 2 && modulo10 <= 4 && (modulo100 < 12 || modulo100 > 14)) {
+    return endings[1];
+  } else {
+    return endings[2];
+  }
+}
+
+
+export {getRandomArrayElement, getRandomNumberWithNoRepeat, getRandomInteger, getIntegerRange, getWordEnding, showError, debounce};
+
 
