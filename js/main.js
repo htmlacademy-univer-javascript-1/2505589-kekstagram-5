@@ -1,8 +1,20 @@
-import { photos } from './photos.js';
-import { renderPhoto } from './thumbnailCreator.js';
-import { initFilters } from './filters.js';
-import './form.js';
-import './api.js';
+import { fetchPhotos } from './server.js';
+import { setFormSubmit } from './form.js';
+import { initFilters } from './filter.js';
+import { renderPhotos } from './drawing-thumbnails.js';
+import { alertDataLoadError } from './utils.js';
 
-renderPhoto(photos); // Отрисовка миниатюр
-initFilters(photos, renderPhoto); // Инициализация фильтров
+let photos = [];
+
+const handleSuccessLoad = (data) => {
+  photos = data.slice();
+  renderPhotos(photos);
+  document.querySelector('.img-filters').classList.remove('img-filters--inactive');
+};
+
+fetchPhotos(handleSuccessLoad, alertDataLoadError).then();
+initFilters();
+setFormSubmit();
+
+export { photos };
+
