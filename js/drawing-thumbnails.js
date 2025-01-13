@@ -33,3 +33,4 @@ const clearPhotos = () => {
 };
 
 export { renderPhotos, clearPhotos };
+

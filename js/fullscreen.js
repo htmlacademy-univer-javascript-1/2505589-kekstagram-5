@@ -85,4 +85,3 @@ function openModal(url, description, likes, comments) {
 }
 
 export { openModal };
-

@@ -17,3 +17,4 @@ initFilters();
 setFormSubmit();
 
 export { photos };
+

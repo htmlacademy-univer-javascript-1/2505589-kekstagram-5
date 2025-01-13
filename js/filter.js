@@ -44,3 +44,4 @@ const initFilters = () => {
 };
 
 export { initFilters };
+
